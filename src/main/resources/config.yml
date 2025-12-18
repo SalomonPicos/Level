@@ -1,4 +1,4 @@
-# Level Configuration ${version}
+# Level Configuration 2.23.0-SNAPSHOT-LOCAL
 # 
 # 
 # Disabled Game Mode Addons
@@ -25,7 +25,7 @@ calculation-timeout: 5
 # If true, Level will calculate the starter island's level and remove it from any future level calculations.
 # If false, the player's starter island blocks will count towards their level.
 # This will reduce CPU if false.
-zero-new-island-levels: true
+zero-new-island-levels: false
 # 
 # Calculate island level on login
 # This silently calculates the player's island level when they login

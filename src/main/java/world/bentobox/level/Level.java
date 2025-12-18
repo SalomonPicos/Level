@@ -59,6 +59,7 @@ public class Level extends Addon {
     private boolean advChestEnabled;
     private boolean roseStackersEnabled;
     private boolean ultimateStackerEnabled;
+    private boolean gensGeneratorsEnabled;
     private final List<GameModeAddon> registeredGameModes = new ArrayList<>();
 
     /**
@@ -113,6 +114,7 @@ public class Level extends Addon {
         hookAdvancedChests();
         hookPlugin("RoseStacker", this::hookRoseStackers);
         hookPlugin("UltimateStacker", this::hookUltimateStacker);
+        hookPlugin("GensGenerators", this::hookGensGenerators);
 
         if (this.isEnabled()) {
             hookExtensions();
@@ -189,6 +191,13 @@ public class Level extends Addon {
         ultimateStackerEnabled = Bukkit.getPluginManager().isPluginEnabled("UltimateStacker");
         if (ultimateStackerEnabled) {
             log("Hooked into UltimateStacker.");
+        }
+    }
+
+    private void hookGensGenerators() {
+        gensGeneratorsEnabled = Bukkit.getPluginManager().isPluginEnabled("GensGenerators");
+        if (gensGeneratorsEnabled) {
+            log("Hooked into GensGenerators.");
         }
     }
 
@@ -464,6 +473,10 @@ public class Level extends Addon {
      */
     public boolean isUltimateStackerEnabled() {
         return ultimateStackerEnabled;
+    }
+
+    public boolean isGensGeneratorsEnabled() {
+        return gensGeneratorsEnabled;
     }
 
     /**

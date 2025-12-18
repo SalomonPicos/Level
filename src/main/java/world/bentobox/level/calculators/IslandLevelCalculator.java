@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Locale;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -24,6 +25,9 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
@@ -195,6 +199,58 @@ public class IslandLevelCalculator {
             }
         }
     }
+
+    private void addGeneratorValue(String id, int value, boolean belowSeaLevel) {
+        if (value == 0) {
+            return;
+        }
+        if (belowSeaLevel) {
+            results.underWaterBlockCount.addAndGet(value);
+            results.uwCount.add(id);
+        } else {
+            results.rawBlockCount.addAndGet(value);
+            results.mdCount.add(id);
+        }
+    }
+
+    private GeneratorMeta resolveGeneratorMeta(Location loc) {
+        World world = loc.getWorld();
+        if (world == null) {
+            return null;
+        }
+        PersistentDataContainer pdc = world.getPersistentDataContainer();
+        NamespacedKey markerKey = generatorKey(loc, "gn");
+        if (markerKey == null) {
+            return null;
+        }
+        Byte marker = pdc.get(markerKey, PersistentDataType.BYTE);
+        if (marker == null || marker == (byte) 0) {
+            return null;
+        }
+        NamespacedKey typeKey = generatorKey(loc, "gnt");
+        NamespacedKey tierKey = generatorKey(loc, "gtr");
+        String type = typeKey == null ? null : pdc.get(typeKey, PersistentDataType.STRING);
+        Integer tier = tierKey == null ? null : pdc.get(tierKey, PersistentDataType.INTEGER);
+        if (type == null || type.isEmpty()) {
+            return null;
+        }
+        if (tier == null || tier < 1) {
+            tier = 1;
+        }
+        return new GeneratorMeta(type, tier);
+    }
+
+    private NamespacedKey generatorKey(Location loc, String prefix) {
+        World w = loc.getWorld();
+        if (w == null) {
+            return null;
+        }
+        String worldId = w.getUID().toString().replace("-", "");
+        String key = prefix + "_" + worldId + "_" + loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ();
+        return new NamespacedKey("gens", key.toLowerCase(Locale.ENGLISH));
+    }
+
+    private record GeneratorMeta(String typeKey, int tier) {}
 
     /**
      * Get a set of all the chunks in island
@@ -517,6 +573,21 @@ public class IslandLevelCalculator {
         boolean belowSeaLevel = seaHeight > 0 && y <= seaHeight;
         // Create a Location object only when needed for more complex checks.
         Location loc = null;
+
+        // === Generators (gens-generators) handling ===
+        if (addon.isGensGeneratorsEnabled()) {
+            if (loc == null) {
+                loc = new Location(cp.world, globalX, y, globalZ);
+            }
+            GeneratorMeta generatorMeta = resolveGeneratorMeta(loc);
+            if (generatorMeta != null) {
+                Integer genValue = addon.getBlockConfig().getGeneratorValue(cp.world, generatorMeta.typeKey, generatorMeta.tier);
+                if (genValue != null) {
+                    addGeneratorValue("generator:" + generatorMeta.typeKey + ":tier" + generatorMeta.tier, genValue, belowSeaLevel);
+                    return;
+                }
+            }
+        }
 
         // === Custom Block Hooks (ItemsAdder, Oraxen) ===
         // These hooks can define custom blocks that override vanilla behavior.

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
@@ -36,6 +37,8 @@ public class BlockConfig {
     private Map<String, Integer> blockValues = new HashMap<>();
     private final Map<World, Map<String, Integer>> worldBlockValues = new HashMap<>();
     private final Map<World, Map<EntityType, Integer>> worldSpawnerValues = new HashMap<>();
+    private final Map<String, Map<Integer, Integer>> generatorValues = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    private final Map<World, Map<String, Map<Integer, Integer>>> worldGeneratorValues = new HashMap<>();
     private final List<String> hiddenBlocks;
     private Map<EntityType, Integer> spawnerValues = new EnumMap<>(EntityType.class);
     private Level addon;
@@ -78,6 +81,10 @@ public class BlockConfig {
         // Worlds
         if (blockValuesConfig.isConfigurationSection("worlds")) {
             loadWorlds(blockValuesConfig);
+        }
+        // Generators (type/tier) values
+        if (blockValuesConfig.isConfigurationSection("generators")) {
+            loadGeneratorValues(blockValuesConfig.getConfigurationSection("generators"), generatorValues);
         }
         // Hidden
         hiddenBlocks = blockValuesConfig.getStringList("hidden-blocks").stream().map(this::convert).toList();
@@ -157,7 +164,15 @@ public class BlockConfig {
             if (bWorld != null) {
                 ConfigurationSection blocks = worlds.getConfigurationSection(world);
                 Map<String, Integer> values = worldBlockValues.getOrDefault(bWorld, new HashMap<>());
+                Map<String, Map<Integer, Integer>> genValues = worldGeneratorValues.getOrDefault(bWorld, new TreeMap<>(String.CASE_INSENSITIVE_ORDER));
                 for (String key : blocks.getKeys(false)) {
+                    if (key.equalsIgnoreCase("generators")) {
+                        ConfigurationSection gens = blocks.getConfigurationSection(key);
+                        if (gens != null) {
+                            loadGeneratorValues(gens, genValues);
+                        }
+                        continue;
+                    }
                     // Convert old materials to namespaced keys
                     key = convertKey(blocks, key);
                     // Validate
@@ -169,6 +184,9 @@ public class BlockConfig {
                     }
                 }
                 worldBlockValues.put(bWorld, values);
+                if (!genValues.isEmpty()) {
+                    worldGeneratorValues.put(bWorld, genValues);
+                }
             } else {
                 addon.log("Level Addon: No such world in blockconfig.yml : " + world);
             }
@@ -287,6 +305,55 @@ public class BlockConfig {
      */
     public Map<World, Map<String, Integer>> getWorldBlockValues() {
         return worldBlockValues;
+    }
+
+    /**
+     * Get configured generator value for a type/tier with optional world override.
+     * @param world target world
+     * @param typeKey generator type key (case-insensitive)
+     * @param tier tier number
+     * @return value or null if not defined
+     */
+    public Integer getGeneratorValue(World world, String typeKey, int tier) {
+        if (typeKey == null) {
+            return null;
+        }
+        if (world != null && worldGeneratorValues.containsKey(world)) {
+            Integer v = lookupGeneratorValue(worldGeneratorValues.get(world), typeKey, tier);
+            if (v != null) {
+                return v;
+            }
+        }
+        return lookupGeneratorValue(generatorValues, typeKey, tier);
+    }
+
+    private Integer lookupGeneratorValue(Map<String, Map<Integer, Integer>> source, String typeKey, int tier) {
+        if (source == null) {
+            return null;
+        }
+        Map<Integer, Integer> tiers = source.get(typeKey);
+        if (tiers == null) {
+            return null;
+        }
+        return tiers.get(tier);
+    }
+
+    private void loadGeneratorValues(ConfigurationSection section, Map<String, Map<Integer, Integer>> target) {
+        for (String typeKey : section.getKeys(false)) {
+            ConfigurationSection tiers = section.getConfigurationSection(typeKey);
+            if (tiers == null) {
+                continue;
+            }
+            Map<Integer, Integer> tierMap = target.computeIfAbsent(typeKey, k -> new HashMap<>());
+            for (String tierKey : tiers.getKeys(false)) {
+                try {
+                    int tier = Integer.parseInt(tierKey);
+                    tierMap.put(tier, tiers.getInt(tierKey));
+                } catch (NumberFormatException ex) {
+                    addon.logError("Invalid tier in generators section for " + typeKey + ": " + tierKey);
+                }
+            }
+        }
     }
 
     /**
