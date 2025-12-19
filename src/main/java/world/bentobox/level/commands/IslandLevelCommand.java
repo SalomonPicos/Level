@@ -117,12 +117,6 @@ public class IslandLevelCommand extends CompositeCommand {
                         "[levelcost]", String.valueOf(this.addon.getSettings().getLevelCost())
                 );
             }
-            // Tell other team members
-            if (results.getLevel() != oldLevel) {
-                island.getMemberSet().stream()
-                .filter(u -> !u.equals(user.getUniqueId()))
-                .forEach(m -> User.getInstance(m).sendMessage(ISLAND_LEVEL_IS, LEVEL, addon.getManager().getIslandLevelString(getWorld(), playerUUID)));
-            }
         } else if (this.addon.getSettings().isLogReportToConsole()) {
             results.getReport().forEach(BentoBox.getInstance()::log);
         }
