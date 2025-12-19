@@ -103,6 +103,17 @@ public class Level extends Addon {
     }
 
     @Override
+    public void onReload() {
+        super.onReload();
+        if (loadSettings()) {
+            logError("Level settings could not load! Addon disabled.");
+            setState(State.DISABLED);
+            return;
+        }
+        registerPlaceholders();
+    }
+
+    @Override
     public void allLoaded() {
         super.allLoaded();
         loadBlockSettings();
@@ -119,6 +130,12 @@ public class Level extends Addon {
         if (this.isEnabled()) {
             hookExtensions();
         }
+    }
+
+    private void registerPlaceholders() {
+        getPlugin().getAddonsManager().getGameModeAddons().stream()
+                .filter(gm -> !settings.getGameModes().contains(gm.getDescription().getName()))
+                .forEach(gm -> new PlaceholderManager(this).registerPlaceholders(gm));
     }
 
     private void initializePipelineAndManager() {
