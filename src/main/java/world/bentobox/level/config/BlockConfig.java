@@ -24,6 +24,7 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.hooks.ItemsAdderHook;
 import world.bentobox.bentobox.hooks.OraxenHook;
 import world.bentobox.level.Level;
+import world.bentobox.level.hooks.CraftEngineHook;
 
 /**
  * Contains all the block values, limits and world differences
@@ -113,7 +114,10 @@ public class BlockConfig {
             return OraxenHook.exists(key.substring(7));
         }
         // Check ItemsAdder
-        return addon.isItemsAdder() && ItemsAdderHook.isInRegistry(key);
+        if (addon.isItemsAdder() && ItemsAdderHook.isInRegistry(key)) {
+            return true;
+        }
+        return CraftEngineHook.isAvailable() && CraftEngineHook.isNamespacedKey(key);
     }
 
     private boolean isSpawner(String key) {

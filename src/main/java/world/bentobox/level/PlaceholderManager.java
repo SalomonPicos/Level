@@ -30,6 +30,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.hooks.ItemsAdderHook;
 import world.bentobox.bentobox.managers.PlaceholdersManager;
 import world.bentobox.bentobox.managers.RanksManager;
+import world.bentobox.level.hooks.CraftEngineHook;
 import world.bentobox.level.objects.IslandLevels;
 import world.bentobox.level.objects.TopTenData;
 
@@ -377,6 +378,10 @@ public class PlaceholderManager {
     @Nullable
     private Object getBlockIdentifier(@Nullable Block block) {
         if (block == null || block.getType().isAir()) return null; 
+        String ceBlockId = CraftEngineHook.getCustomBlockId(block.getBlockData());
+        if (ceBlockId != null) {
+            return ceBlockId;
+        }
 
         Material type = block.getType();
 
@@ -424,6 +429,12 @@ public class PlaceholderManager {
         }
 
         Material type = itemStack.getType();
+
+        // 0. CraftEngine custom block items
+        String ceBlockId = CraftEngineHook.getCustomBlockId(itemStack);
+        if (ceBlockId != null) {
+            return ceBlockId;
+        }
 
         // 1. Handle Spawners
         if (type == Material.SPAWNER) {
@@ -541,6 +552,10 @@ public class PlaceholderManager {
         // Assume it's a custom String key (e.g., ItemsAdder) if not resolved yet
         if (addon.isItemsAdder() && ItemsAdderHook.isInRegistry(configKey)) { // Use original case key for lookup?
             return configKey; 
+        }
+
+        if (CraftEngineHook.isAvailable() && CraftEngineHook.isNamespacedKey(configKey)) {
+            return configKey;
         }
 
         // Final check: maybe it's the generic "spawner" key from config?

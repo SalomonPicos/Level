@@ -24,6 +24,7 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.hooks.ItemsAdderHook;
 import world.bentobox.level.Level;
+import world.bentobox.level.hooks.CraftEngineHook;
 import world.bentobox.level.objects.IslandLevels;
 import world.bentobox.level.util.Utils;
 
@@ -723,8 +724,17 @@ public class DetailsPanel {
                     Objects.requireNonNullElse(this.addon.getBlockConfig().getLimit(e), 0),
                     Utils.prettifyObject(key, this.user),
                     this.user.getTranslation(this.world, "level.gui.buttons.spawner.block-name"));
-        } else if (key instanceof String s && addon.isItemsAdder()) {
-            Optional<ItemStack> opt = ItemsAdderHook.getItemStack(s);
+        } else if (key instanceof String s) {
+            Optional<ItemStack> opt = Optional.empty();
+            if (addon.isItemsAdder()) {
+                opt = ItemsAdderHook.getItemStack(s);
+            }
+            if (opt.isEmpty() && CraftEngineHook.isAvailable()) {
+                ItemStack ceItem = CraftEngineHook.getItemStack(s);
+                if (ceItem != null) {
+                    opt = Optional.of(ceItem);
+                }
+            }
             ItemStack icon = opt.orElse(new ItemStack(Material.PAPER));
             String disp = opt.filter(is -> is.getItemMeta().hasDisplayName())
                     .map(is -> is.getItemMeta().getDisplayName()).orElse(Utils.prettifyObject(key, this.user));

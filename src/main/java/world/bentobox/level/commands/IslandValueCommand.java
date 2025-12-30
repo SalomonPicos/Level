@@ -19,6 +19,7 @@ import world.bentobox.bentobox.hooks.ItemsAdderHook;
 import world.bentobox.bentobox.hooks.OraxenHook;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.level.Level;
+import world.bentobox.level.hooks.CraftEngineHook;
 import world.bentobox.level.objects.IslandLevels;
 import world.bentobox.level.panels.ValuePanel;
 import world.bentobox.level.util.Utils;
@@ -76,6 +77,12 @@ public class IslandValueCommand extends CompositeCommand
 
         if (mainHandItem.getType() == Material.AIR) {
             Utils.sendMessage(user, user.getTranslation("level.conversations.empty-hand"));
+            return;
+        }
+
+        String ceBlockId = CraftEngineHook.getCustomBlockId(mainHandItem);
+        if (ceBlockId != null) {
+            printValue(user, ceBlockId);
             return;
         }
 

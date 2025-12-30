@@ -58,6 +58,7 @@ import world.bentobox.bentobox.util.Util;
 import world.bentobox.level.Level;
 import world.bentobox.level.calculators.Results.Result;
 import world.bentobox.level.config.BlockConfig;
+import world.bentobox.level.hooks.CraftEngineHook;
 
 public class IslandLevelCalculator {
     private final UUID calcId = UUID.randomUUID();  // ID for hashing
@@ -466,6 +467,17 @@ public class IslandLevelCalculator {
     }
 
     private void countItemStack(ItemStack i) {
+        if (i == null || i.getType().isAir()) {
+            return;
+        }
+        // CraftEngine custom block items
+        String ceBlockId = CraftEngineHook.getCustomBlockId(i);
+        if (ceBlockId != null) {
+            for (int c = 0; c < i.getAmount(); c++) {
+                checkBlock(ceBlockId, false);
+            }
+            return;
+        }
         // Check Oraxen
         if (BentoBox.getInstance().getHooks().getHook("Oraxen").isPresent() && OraxenHook.exists(i)) {
             String id = OraxenHook.getIdByItem(i);
@@ -478,8 +490,8 @@ public class IslandLevelCalculator {
             }
             return;
         }
-        
-        if (i == null || !i.getType().isBlock())
+
+        if (!i.getType().isBlock())
             return;
 
         for (int c = 0; c < i.getAmount(); c++) {
@@ -573,6 +585,13 @@ public class IslandLevelCalculator {
         boolean belowSeaLevel = seaHeight > 0 && y <= seaHeight;
         // Create a Location object only when needed for more complex checks.
         Location loc = null;
+
+        // === CraftEngine custom blocks ===
+        String ceBlockId = CraftEngineHook.getCustomBlockId(blockData);
+        if (ceBlockId != null) {
+            checkBlock(ceBlockId, belowSeaLevel);
+            return;
+        }
 
         // === Generators (gens-generators) handling ===
         if (addon.isGensGeneratorsEnabled()) {

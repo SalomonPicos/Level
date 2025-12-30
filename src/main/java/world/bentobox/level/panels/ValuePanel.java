@@ -31,6 +31,7 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.hooks.ItemsAdderHook;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.level.Level;
+import world.bentobox.level.hooks.CraftEngineHook;
 import world.bentobox.level.util.ConversationUtils;
 import world.bentobox.level.util.Utils;
 
@@ -678,6 +679,12 @@ public class ValuePanel
         // ItemsAdder
         if (icon == null && addon.isItemsAdder() && ItemsAdderHook.isInRegistry(key)) {
             icon = ItemsAdderHook.getItemStack(key).map(ItemStack::getType).orElse(null);
+        }
+        if (icon == null && CraftEngineHook.isAvailable()) {
+            ItemStack ceItem = CraftEngineHook.getItemStack(key);
+            if (ceItem != null) {
+                icon = ceItem.getType();
+            }
         }
         if (icon != null && icon.isItem()) {
             return icon;
